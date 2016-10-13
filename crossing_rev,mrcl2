@@ -1,0 +1,141 @@
+sort 
+	Sensor = struct S1E| S2E | S1W| S2W| S1C| S2C;
+	State  = struct HIGH| LOW;
+	Barricade = struct BA_N | BA_S;
+	Position =  struct OPEN| CLOSE;
+	Light	= struct L_N| L_S;
+	Condition  = struct ON| OFF;
+	Track	= struct T1 | T2;
+	Available	= struct YA| NA;
+	Bell	= struct BELL;
+	Mode	= struct RING| SILENT;
+	Bound	= struct IN| OUT;
+
+act
+	s_State : State;
+	b_Position: Position; 
+	c_Condition: Condition;
+	a_Available: Available;
+	m_Mode	: Mode;
+	
+% COMMUNICATION ACTION
+
+sendSetLight, recvSetLight, SetLight: Light # Condition;
+sendSetBarrier, recvSetBarrier, SetBarrier: Barricade # Position;
+sendSetBell, recvSetBell, SetBell: Bell # Mode;
+sendSetSensor, recvSetSensor, SetSensor: Sensor # State;
+sendSetTrack, recvSetTrack, SetTrack: Track # Available;
+
+
+% INTERNAL ACTION
+
+proc
+	OccupyTrack(t: Track, A: Available) = 
+		(t == T1 && A == YA) -> recvSetTrack(T1,NA).OccupyTrack(A=NA)
+	+	(t == T1 && A == NA) -> recvSetTrack(T1,YA).OccupyTrack(A=YA)
+	+	(t == T2 && A == YA) -> recvSetTrack(T2,YA).OccupyTrack(A=NA)
+	+	(t == T2 && A == NA) -> recvSetTrack(T2,YA).OccupyTrack(A=YA)
+	
+	+	(t == T1 && A == YA) -> recvSetTrack(t,YA).OccupyTrack(A=YA)
+	+	(t == T1 && A == NA) -> recvSetTrack(t,NA).OccupyTrack(A=NA)
+	+	(t == T2 && A == YA) -> recvSetTrack(t,YA).OccupyTrack(A=YA)
+	+	(t == T2 && A == NA) -> recvSetTrack(t,NA).OccupyTrack(A=NA);
+
+	
+UpdateSensor(s: Sensor, S: State)=
+		(s==S1E && S == HIGH) -> recvSetSensor(S1E,LOW).UpdateSensor(S = LOW)
+	+	(s==S1E && S == LOW) -> recvSetSensor(S1E,HIGH).UpdateSensor( S = HIGH)
+	+	(s==S2E && S == HIGH) -> recvSetSensor(S2E,LOW).UpdateSensor(S = LOW)
+	+	(s==S2E && S == LOW) -> recvSetSensor(S2E,HIGH).UpdateSensor( S = HIGH)
+	+	(s==S1C && S == HIGH) -> recvSetSensor(S1C,LOW).UpdateSensor(S = LOW)
+	+	(s==S1C && S == LOW) -> recvSetSensor(S1C, HIGH).UpdateSensor( S = HIGH)
+	+	(s==S2C && S == HIGH) -> recvSetSensor(S2C, LOW).UpdateSensor(S = LOW)
+	+	(s==S2C && S == LOW) -> recvSetSensor(S2C, HIGH).UpdateSensor( S = HIGH)
+	+	(s==S1W && S == HIGH) -> recvSetSensor(S1W, LOW).UpdateSensor(S = LOW)
+	+	(s==S1W && S == LOW) -> recvSetSensor(S1W, HIGH).UpdateSensor( S = HIGH)
+	+	(s==S2W && S == HIGH) -> recvSetSensor(S2W,LOW).UpdateSensor(S = LOW)
+	+	(s==S2W && S == LOW) -> recvSetSensor(S2W , HIGH).UpdateSensor( S = HIGH)
+	
+	+	(s==S1E && S == LOW) -> recvSetSensor(s,LOW).UpdateSensor(S = LOW)
+	+	(s==S1E && S == HIGH) -> recvSetSensor(s,HIGH).UpdateSensor( S = HIGH)
+	+	(s==S2E && S == LOW) -> recvSetSensor(s,LOW).UpdateSensor(S = LOW)
+	+	(s==S2E && S == HIGH) -> recvSetSensor(s,HIGH).UpdateSensor( S = HIGH)
+	+	(s==S1C && S == LOW) -> recvSetSensor(s,LOW).UpdateSensor(S = LOW)
+	+	(s==S1C && S == HIGH) -> recvSetSensor(s,HIGH).UpdateSensor( S = HIGH)
+	+	(s==S2C && S == LOW) -> recvSetSensor(s,LOW).UpdateSensor(S = LOW)
+	+	(s==S2C && S == HIGH) -> recvSetSensor(s,HIGH).UpdateSensor( S = HIGH)
+	+	(s==S1W && S == LOW) -> recvSetSensor(s,LOW).UpdateSensor(S = LOW)
+	+	(s==S1W && S == HIGH) -> recvSetSensor(s,HIGH).UpdateSensor( S = HIGH)
+	+	(s==S2W && S == LOW) -> recvSetSensor(s,LOW).UpdateSensor(S = LOW)
+	+	(s==S2W && S == HIGH) -> recvSetSensor(s,HIGH).UpdateSensor( S = HIGH)
+	;
+	
+
+	EngageBarricade(b: Barricade, P: Position) = 
+		(b == BA_N && P == OPEN) -> b_Position(CLOSE).EngageBarricade(P=CLOSE)
+	+	(b == BA_N && P == CLOSE) -> b_Position(OPEN).EngageBarricade(P=OPEN)
+	+	(b == BA_S && P == OPEN) -> b_Position(CLOSE).EngageBarricade(P=CLOSE)
+	+	(b == BA_S && P == CLOSE) -> b_Position(OPEN).EngageBarricade(P=OPEN)
+	
+	+	(b == BA_N && P == OPEN) -> b_Position(OPEN).EngageBarricade(P=OPEN)
+	+	(b == BA_N && P == CLOSE) -> b_Position(CLOSE).EngageBarricade(P=CLOSE)
+	+	(b == BA_S && P == OPEN) -> b_Position(OPEN).EngageBarricade(P=OPEN)
+	+	(b == BA_S && P == CLOSE) -> b_Position(CLOSE).EngageBarricade(P=CLOSE);
+
+	
+	SwitchLight(l: Light, C: Condition) = 
+		(l == L_N && C == ON) -> recvSetLight(L_N,OFF).SwitchLight(C=OFF)
+	+	(l == L_N && C == OFF) -> recvSetLight(L_N,ON).SwitchLight(C=ON)
+	+	(l == L_S && C == ON) -> recvSetLight(L_S,OFF).SwitchLight(C=OFF)
+	+	(l == L_S && C == OFF) -> recvSetLight(L_S,ON).SwitchLight(C=ON)
+	
+	+	(l == L_N && C == OFF) -> recvSetLight(L_N,OFF).SwitchLight(C=OFF)
+	+	(l == L_N && C == ON) -> recvSetLight(L_N,ON).SwitchLight(C=ON)
+	+	(l == L_S && C == OFF) -> recvSetLight(L_S,OFF).SwitchLight(C=OFF)
+	+	(l == L_S && C == ON) -> recvSetLight(L_S,ON).SwitchLight(C=ON);
+
+	RingBell(b: Bell, M: Mode) = 
+		(b == BELL && M == RING) -> m_Mode(SILENT).RingBell(M=SILENT)
+	+	(b == BELL && M == SILENT) -> m_Mode(RING).RingBell(M=RING)
+
+	+	(b == BELL && M == SILENT) -> m_Mode(SILENT).RingBell(M=SILENT)
+	+	(b == BELL && M == RING) -> m_Mode(RING).RingBell(M=RING);
+	
+
+	TrainInbound(t: Track) = ((t == T1) -> sendSetTrack(T1, YA).sendSetSensor(S1E, HIGH) + 
+				(t == T2) -> sendSetTrack(T2, YA).sendSetSensor(S2E, HIGH)).
+			sendSetLight(L_N,ON).sendSetLight(L_S,ON).sendSetBell(BELL,RING)
+					.sendSetBarrier(BA_N, CLOSE).sendSetBarrier(BA_S, CLOSE).sendSetBell(BELL,SILENT).
+			((t==T1) -> sendSetSensor(S1C,HIGH).sendSetSensor(S1E,LOW)+
+				(t==T2)-> sendSetSensor(S2C, HIGH).sendSetSensor(S2E,LOW)).TrainOutbound(t); 
+	
+	TrainOutbound(t: Track) = ((t == T1) -> sendSetTrack(T1, NA).sendSetSensor(S1C, LOW) + 
+				(t == T2) -> sendSetTrack(T2, NA).sendSetSensor(S2C, LOW)).
+			sendSetBell(BELL,RING).sendSetBarrier(BA_N, OPEN).sendSetBarrier(BA_S, OPEN).sendSetBell(BELL,SILENT).
+					sendSetLight(L_N,OFF).sendSetLight(L_S,OFF) ; 
+	Train(d: Bound,t : Track)= ((d == IN) ->TrainInbound(t) +
+				(d==OUT) -> TrainOutbound(t)).Train(d,t).Train(d,t); 
+
+init 
+allow({ SetLight, SetBarrier, SetTrack, SetSensor,SetBell
+		,sendSetTrack,recvSetTrack, sendSetLight, recvSetLight, sendSetBarrier, recvSetBarrier
+},
+comm({sendSetLight|recvSetLight -> SetLight, 
+	sendSetSensor| recvSetSensor -> SetSensor,
+	sendSetBarrier| recvSetBarrier -> SetBarrier,
+	sendSetBell|recvSetBell-> SetBell,
+	sendSetTrack|recvSetTrack -> SetTrack
+	},
+EngageBarricade(BA_S, OPEN)||EngageBarricade(BA_N, OPEN)
+||	% INITIALIZATION OF SENSORS
+UpdateSensor(S1E, LOW)||UpdateSensor(S2E, LOW)||
+UpdateSensor(S1W, LOW)||UpdateSensor(S2W, LOW)||
+UpdateSensor(S1C, LOW)||UpdateSensor(S2C, LOW)
+|| 	%INITIALIZATION OF SIGNAL LIGHTS
+SwitchLight(L_N, OFF)||SwitchLight(L_S, OFF) 
+|| 	%INITIALIZATION OF TRAIN TRACK
+OccupyTrack(T1, NA)||OccupyTrack(T2, NA)  
+|| 	%INITIALIZATION OF BELL IN SILENT MODE
+RingBell(BELL, SILENT)|| (Train(IN, T1)   || (Train(IN, T2) ))
+) )
+;
